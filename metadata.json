@@ -1,0 +1,5 @@
+{
+  "name": "AI 생물 관찰일지 (BioLog AI)",
+  "description": "초등학생을 위한 AI 기반 생물 관찰 및 학습 플랫폼. AI 생물박사 챗봇, AI 생물도감, 교사용 대시보드 및 배지 시스템 제공.",
+  "requestFramePermissions": ["camera", "microphone"]
+}

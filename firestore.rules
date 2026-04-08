@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string
+    //   - role: string (student/teacher)
+    //   - classId: string
+    //   - points: number
+    //   - badges: list
+    //
+    // Collection: journals
+    // Document ID: {journalId}
+    // Fields:
+    //   - studentId: string (required)
+    //   - studentName: string
+    //   - classId: string
+    //   - title: string (required)
+    //   - content: string (required)
+    //   - imageUrl: string
+    //   - aiFeedback: string
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: classes
+    // Document ID: {classId}
+    // Fields:
+    //   - name: string (required)
+    //   - teacherId: string (required)
+    //   - studentCount: number
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "syeon9574@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isTeacher() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.role in ['student', 'teacher'] &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             (!('classId' in data) || data.classId is string) &&
+             (!('points' in data) || data.points is number) &&
+             (!('badges' in data) || data.badges is list);
+    }
+
+    function isValidJournal(data) {
+      return data.keys().hasAll(['studentId', 'title', 'content', 'createdAt']) &&
+             data.studentId is string &&
+             data.title is string && data.title.size() < 200 &&
+             data.content is string && data.content.size() < 5000 &&
+             data.createdAt is timestamp &&
+             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() < 1000)) &&
+             (!('aiFeedback' in data) || data.aiFeedback is string);
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == 'student';
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role;
+      allow write: if isAdmin();
+    }
+
+    match /journals/{journalId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid && isValidJournal(request.resource.data);
+      allow update: if isAuthenticated() && (resource.data.studentId == request.auth.uid || isTeacher()) && isValidJournal(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+    }
+
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow create: if isTeacher();
+      allow update, delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "App user (student or teacher)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "teacher"] },
+        "classId": { "type": "string" },
+        "points": { "type": "number" },
+        "badges": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "ObservationJournal": {
+      "title": "Observation Journal",
+      "description": "A biology observation entry",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "classId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "aiFeedback": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "title", "content", "createdAt"]
+    },
+    "Class": {
+      "title": "Class",
+      "description": "A classroom group managed by a teacher",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "studentCount": { "type": "number" }
+      },
+      "required": ["name", "teacherId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/journals/{journalId}": {
+      "schema": "ObservationJournal",
+      "description": "Observation journals"
+    },
+    "/classes/{classId}": {
+      "schema": "Class",
+      "description": "Classroom data"
+    }
+  }
+}
